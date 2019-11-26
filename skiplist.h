@@ -7,13 +7,6 @@
 #include <cstring>
 #include <random>
 
-#define Logf(fmt, ...)                                                    \
-  fprintf(stderr, "%s:%s:%d:" fmt "\n", __FILE__, __FUNCTION__, __LINE__, \
-          __VA_ARGS__)
-
-#define Log(str) \
-  fprintf(stderr, "%s:%s:" str "\n", __FILE__, __FUNCTION__, __LINE__)
-
 // It's almost guaranteed to be logn if the maximum number of nodes range in 0
 // to 2^20
 const int kMaxLevel = 20;
