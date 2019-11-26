@@ -3,7 +3,28 @@
 #include <chrono>
 #include <iostream>
 
-int main(int argc, char const *argv[]) {
+class Test {
+ public:
+  Test() {
+    std::cout << "0000000000"
+              << "\n";
+  }
+  ~Test() {
+    std::cout << "111111111111"
+              << "\n";
+  }
+  Test(const Test& other) {
+    std::cout << "222222222222"
+              << "\n";
+  };
+  Test(Test&& other) {
+    std::cout << "333333333"
+              << "\n";
+  };
+  bool operator<(const Test& other) const { return true; }
+};
+
+int main(int argc, char const* argv[]) {
   (void)argc;
   (void)argv;
 

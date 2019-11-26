@@ -205,7 +205,7 @@ struct SkipList<T, Comparator>::Node {
 };
 
 template <typename T, typename Comparator>
-struct SkipList<T, Comparator>::Iterator {
+class SkipList<T, Comparator>::Iterator {
  private:
   Iterator(Node* node) : node_(node) {}
   Node* get_node() const { return node_; };
