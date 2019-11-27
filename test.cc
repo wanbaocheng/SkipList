@@ -1,7 +1,9 @@
 #include "skiplist.h"
 
 #include <chrono>
+#include <cstdio>
 #include <iostream>
+#define Logf(fmt, ...) fprintf(stderr, fmt "\n", __VA_ARGS__)
 
 class Test {
  public:
@@ -30,16 +32,48 @@ int main(int argc, char const* argv[]) {
 
   SkipList<int> sl;
 
-  auto t1_ = std::chrono::steady_clock::now();
-  for (int i = 0; i < 1000000; ++i) {
-    sl.Insert(random() % 1000000);
+  // sl.Insert(1);
+  // sl.Insert(1);
+  // sl.Insert(1);
+  // sl.Erase(sl.Find(1));
+  // sl[0];
+  // sl[1];
+
+  // auto t1_ = std::chrono::steady_clock::now();
+  for (int i = 0; i < 10; ++i) {
+    sl.Insert(random() % 10);
   }
 
-  auto t2_ = std::chrono::steady_clock::now();
-  int ms =
-      std::chrono::duration_cast<std::chrono::milliseconds>(t2_ - t1_).count();
+  sl.Erase(sl.Find(5));
+  sl.Erase(sl.Find(9));
+  for (int i = 0; i < 8; ++i) {
+    Log("***  %d->", sl[i]);
+  }
 
-  std::cout << " timespan=" << ms << "ms"
-            << "\n";
+  // sl.Dump();
+
+  // sl.Erase(sl.Find(1));
+
+  // sl.Dump();
+
+  // sl[0];
+  // sl[1];
+
+  // for (int i = 0; i < 2; ++i) {
+  //   Log("***  %d->", sl[i]);
+  // }
+
+  // sl.Erase(sl.Find(1));
+  // assert(sl.Size() == 3);
+  // for (int i = 0; i < 3; ++i) {
+  //   Log("%d->", sl[i]);
+  // }
+
+  // auto t2_ = std::chrono::steady_clock::now();
+  // int ms =
+  //     std::chrono::duration_cast<std::chrono::milliseconds>(t2_ -
+  //     t1_).count();
+  // std::cout << " timespan=" << ms << "ms"
+  //           << "\n";
   return 0;
 }

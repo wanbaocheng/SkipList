@@ -2,14 +2,15 @@
 #define SKIPLIST_H
 
 #include <algorithm>
-#include <atomic>
 #include <cassert>
 #include <cstring>
 #include <random>
 
+#define Log(fmt, ...) fprintf(stderr, fmt, __VA_ARGS__)
+
 // It's almost guaranteed to be logn if the maximum number of nodes range in 0
 // to 2^20
-const int kMaxLevel = 20;
+const int kMaxLevel = 3;
 
 template <typename T, typename Comparator = std::less<T>>
 class SkipList {
@@ -19,9 +20,11 @@ class SkipList {
  public:
   class Iterator;
 
-  SkipList() : head_(new Node(kMaxLevel)), compare_() {
-    memset(&head_->nexts[0], 0, sizeof(head_->nexts[0]) * kMaxLevel);
-    memset(&head_->spans[0], 0, sizeof(head_->spans[0]) * kMaxLevel);
+  SkipList() : head_(new Node(kMaxLevel)), compare_(), size_(0) {
+    for (int l = 0; l < kMaxLevel; ++l) {
+      head_->nexts[l] = 0;
+      head_->spans[l] = 1;
+    }
   }
 
   ~SkipList() {
@@ -58,31 +61,53 @@ class SkipList {
   // Find the first node whose data is equals to the given data.
   // If success return the iterator, else return the end iterator.
   Iterator Find(const T& data) const {
-    Node* prevs[kMaxLevel];
-    return Find(data, prevs);
+    Node* find_node = FindFirstGreaterOrEquals(data);
+    return InterlFind(data, find_node);
   }
 
-  Iterator Find(const T& data, Node** prevs) const {
-    Node* find_node = FindFirstGreaterOrEquals(data, prevs);
-    if (nullptr != find_node && Equals(data, find_node->data)) {
-      return Iterator(find_node);
-    } else {
-      return End();
-    }
-  }
+  // Find data whose position is at index.
+  const T& At(const int index) const;
+  const T& operator[](const int index) const { return At(index); }
+
+  // Find index of first node whose data is equals to the given data.
+  // If data not exist return -1
+  int IndexOf(const T& data) const;
+  // int operator[](const T& data) const { return IndexOf(index); }
+
+  // Find data node whose position is at index.
+  bool Empty() const { return 0 == size_; };
+
+  // Retun the size of SkipList
+  int Size() const { return size_; };
 
   // Delete the node whose address is equals to
-  // the address of node of the given iterator.
-  // If success return true and change erase_it to ++erase_it.
+  // the address of the node held by given iterator.
+  // If success return true and change erase_it to ++erase_it,
+  // else return false(the node held by erase_it not exist).
   bool Erase(Iterator&& erase_it) { return InternalErase(erase_it); }
 
   // Delete the node whose address is equals to
-  // the address of node of the given iterator.
-  // If success return true and change erase_it to ++erase_it.
+  // the address of the node held by given iterator.
+  // If success return true and change erase_it to ++erase_it,
+  // else return false(the node held by erase_it not exist).
   bool Erase(Iterator& erase_it) { return InternalErase(erase_it); }
 
   Iterator begin() const { return Iterator(head_->nexts[0]); }
   Iterator End() const { return Iterator(nullptr); }
+
+  void Dump() {
+    Node* p = head_;
+    while (p != nullptr) {
+      Log("level=%d,data=%d,", p->level, p->data);
+      for (int l = 0; l < p->level; ++l) {
+        Log("spans[%d]=%d,", l, p->spans[l]);
+      }
+      Log("\t", 1);
+
+      p = p->nexts[0];
+    }
+    Log("\n", 1);
+  }
 
  private:
   bool InternalErase(Iterator& erase_it);
@@ -97,26 +122,55 @@ class SkipList {
 
   void InsertNode(Node* const new_node) {
     Node* prevs[kMaxLevel];
-    FindFirstGreaterOrEquals(new_node->data, prevs);
+    int prev_spans[kMaxLevel];
+    memset(&prev_spans[0], 0, sizeof(prev_spans[0]) * kMaxLevel);
+    FindFirstGreaterOrEquals(new_node->data, prevs, prev_spans);
 
-    for (int i = 0; i < new_node->level; ++i) {
+    int new_level = new_node->level;
+    for (int l = 0; l < new_level; ++l) {
       // Update prevs' nexts and new_node's nexts
-      new_node->nexts[i] = prevs[i]->nexts[i];
-      prevs[i]->nexts[i] = new_node;
+      new_node->nexts[l] = prevs[l]->nexts[l];
+      prevs[l]->nexts[l] = new_node;
+      // Update prevs' spans and new_node's spans
+      new_node->spans[l] = prevs[l]->spans[l] - prev_spans[l];
+      prevs[l]->spans[l] = prev_spans[l] + 1;
+    }
+
+    for (int l = new_level; l < kMaxLevel; ++l) {
+      // Update prevs' spans
+      ++prevs[l]->spans[l];
+    }
+    ++size_;
+  }
+
+  Iterator Find(const T& data, Node** prevs, int* spans) const {
+    Node* find_node = FindFirstGreaterOrEquals(data, prevs, spans);
+    return InterlFind(data, find_node);
+  }
+
+  Iterator InterlFind(const T& data, Node* find_node) const {
+    if (nullptr != find_node && Equals(data, find_node->data)) {
+      return Iterator(find_node);
+    } else {
+      return End();
     }
   }
 
-  // Find the first node whose data is greater than or equal to the given data
-  Node* FindFirstGreaterOrEquals(const T& data, Node** prevs) const {
+  // Find the first node whose data is greater than or equal to the given data,
+  // and save the prev nodes in prevs, save spans from prevs[i] to find_node
+  Node* FindFirstGreaterOrEquals(const T& data, Node** prevs,
+                                 int* prev_spans) const;
+
+  // Find the first node whose data is greater than or equals to the given data
+  Node* FindFirstGreaterOrEquals(const T& data) const {
     Node* p = head_;
     int level = head_->level - 1;
     while (level >= 0) {
       Node* next = p->nexts[level];
       if (nullptr != next && Greater(data, next->data)) {
+        // Move forward
         p = next;
         level = p->level;
-      } else {
-        prevs[level] = p;
       }
       --level;
     }
@@ -137,7 +191,82 @@ class SkipList {
 
   Node* const head_;
   Comparator const compare_;
+  int size_;
 };
+
+template <typename T, typename Comparator>
+typename SkipList<T, Comparator>::Node*
+SkipList<T, Comparator>::FindFirstGreaterOrEquals(const T& data, Node** prevs,
+                                                  int* prev_spans) const {
+  Node* p = head_;
+  int level = head_->level - 1;
+  while (level >= 0) {
+    Node* next = p->nexts[level];
+    if (nullptr != next && Greater(data, next->data)) {
+      // Move forward
+      int span = p->spans[level];
+      // Log("span=%d\n", span);
+      p = next;
+      level = p->level;
+      // Update prev nodes' spans
+      for (int l = level; l < kMaxLevel; ++l) {
+        prev_spans[l] += span;
+        // Log("prev_spans[%d]=%d\n", l, prev_spans[l]);
+      }
+      memset(&prev_spans[0], 0, sizeof(prev_spans[0]) * level);
+    } else {
+      // Move down
+      prevs[level] = p;
+    }
+    --level;
+  }
+  return p->nexts[0];
+}
+
+template <typename T, typename Comparator>
+const T& SkipList<T, Comparator>::At(const int index) const {
+  assert(index >= 0 && index < size_);
+
+  Node* p = head_;
+  int span = 0;
+  int target_span = index + 1;
+  int level = p->level - 1;
+  for (;;) {
+    Node* next = p->nexts[level];
+    if (nullptr != next && target_span >= (span + p->spans[level])) {
+      // Move forward
+      span += p->spans[level];
+      p = next;
+      if (span == target_span) {
+        return p->data;
+      }
+      level = p->level;
+    }
+    --level;
+    assert(level >= 0);
+  }
+}
+
+template <typename T, typename Comparator>
+int SkipList<T, Comparator>::IndexOf(const T& data) const {
+  Node* p = head_;
+  int level = p->level - 1;
+  int span = 0;
+  while (level >= 0) {
+    Node* next = p->nexts[level];
+    if (nullptr != next && Greater(data, next->data)) {
+      // Move forward
+      span += p->spans[level];
+      p = next;
+      if (Equals(data, p->data)) {
+        return span - 1;
+      }
+      level = p->level;
+    }
+    --level;
+  }
+  return -1;
+}
 
 template <typename T, typename Comparator>
 bool SkipList<T, Comparator>::InternalErase(Iterator& erase_it) {
@@ -148,7 +277,10 @@ bool SkipList<T, Comparator>::InternalErase(Iterator& erase_it) {
 
   Node* const erase_node = erase_it.get_node();
   Node* prevs[kMaxLevel];
-  Iterator begin = Find(erase_node->data, prevs);
+  int prev_spans[kMaxLevel];
+  memset(&prev_spans[0], 0, sizeof(prev_spans[0]) * kMaxLevel);
+
+  Iterator begin = Find(erase_node->data, prevs, prev_spans);
   if (begin == end) {
     erase_it = end;
     return false;
@@ -162,20 +294,38 @@ bool SkipList<T, Comparator>::InternalErase(Iterator& erase_it) {
     if (level == 0) {
       p = p->nexts[0];
       level = p->level;
+      // Update prevs'spans
+      for (int l = level; l < kMaxLevel; ++l) {
+        ++prev_spans[l];
+      }
+      memset(&prev_spans[0], 0, sizeof(prev_spans[0]) * level);
     }
   }
 
-  // Illegal param
-  assert(p == erase_node);
+  // Invalid iterator(already deleted)
+  if (p != erase_node) {
+    erase_it = end;
+    return false;
+  }
 
-  for (int i = 0; i < erase_node->level; ++i) {
+  int erase_level = erase_node->level;
+  for (int l = 0; l < erase_level; ++l) {
     // Update prevs' nexts
-    prevs[i]->nexts[i] = erase_node->nexts[i];
+    prevs[l]->nexts[l] = erase_node->nexts[l];
+    // Update prevs' spans and nexts' spans
+    prevs[l]->spans[l] += erase_node->spans[l] - 1;
+  }
+
+  for (int l = erase_level; l < kMaxLevel; ++l) {
+    // Update prevs' spans
+    --prevs[l]->spans[l];
   }
 
   // move the iterator to next
   ++erase_it;
+
   delete erase_node;
+  --size_;
   return true;
 }
 
@@ -209,6 +359,8 @@ class SkipList<T, Comparator>::Iterator {
  private:
   Iterator(Node* node) : node_(node) {}
   Node* get_node() const { return node_; };
+  void AssertValid() { assert(nullptr != node_); }
+
   friend SkipList;
 
  public:
@@ -224,13 +376,26 @@ class SkipList<T, Comparator>::Iterator {
   // Compare nodes to determine if iterators are strictly equal
   bool operator==(const Iterator& other) const { return node_ == other.node_; }
   bool operator!=(const Iterator& other) const { return node_ != other.node_; }
+
   // Move the iterator to next
   Iterator& operator++() {
+    AssertValid();
     node_ = node_->nexts[0];
     return *this;
   }
+
+  Iterator operator++(int) {
+    AssertValid();
+    Node* temp = node_;
+    node_ = node_->nexts[0];
+    return Iterator(temp);
+  }
+
   // Get the reference of data
-  const T& operator*() { return node_->data; }
+  const T& operator*() {
+    AssertValid();
+    return node_->data;
+  }
 
  private:
   Node* node_;
