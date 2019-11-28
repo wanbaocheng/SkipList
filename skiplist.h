@@ -19,6 +19,11 @@ class SkipList {
   class Iterator;
 
   SkipList() : head_(new Node(kMaxLevel)), compare_(), size_(0) {
+    static_assert(std::is_default_constructible<T>::value,
+                  "T requires default constructor");
+    static_assert(std::is_copy_constructible<T>::value,
+                  "T requires copy constructor");
+
     for (int l = 0; l < kMaxLevel; ++l) {
       head_->nexts[l] = 0;
       head_->spans[l] = 1;
@@ -286,7 +291,7 @@ bool SkipList<T, Comparator>::InternalErase(Iterator& erase_it) {
     }
   }
 
-  // Invalid iterator(already deleted)
+  // Invalid iterator(delete twice)
   if (p != erase_node) {
     erase_it = end;
     return false;
@@ -362,12 +367,15 @@ class SkipList<T, Comparator>::Iterator {
   bool operator!=(const Iterator& other) const { return node_ != other.node_; }
 
   // Move the iterator to next
+  // Prefix Increment Operator
   Iterator& operator++() {
     AssertValid();
     node_ = node_->nexts[0];
     return *this;
   }
 
+  // Move the iterator to next
+  // Postfix Increment Operator
   Iterator operator++(int) {
     AssertValid();
     Node* temp = node_;
@@ -379,6 +387,12 @@ class SkipList<T, Comparator>::Iterator {
   const T& operator*() {
     AssertValid();
     return node_->data;
+  }
+
+  // Get the reference of data
+  const T* operator->() {
+    AssertValid();
+    return &node_->data;
   }
 
  private:
