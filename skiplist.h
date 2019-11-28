@@ -6,11 +6,9 @@
 #include <cstring>
 #include <random>
 
-#define Log(fmt, ...) fprintf(stderr, fmt, __VA_ARGS__)
-
 // It's almost guaranteed to be logn if the maximum number of nodes range in 0
 // to 2^20
-const int kMaxLevel = 16;
+const int kMaxLevel = 20;
 
 template <typename T, typename Comparator = std::less<T>>
 class SkipList {
@@ -94,20 +92,6 @@ class SkipList {
 
   Iterator Begin() const { return Iterator(head_->nexts[0]); }
   Iterator End() const { return Iterator(nullptr); }
-
-  void Dump() {
-    Node* p = head_;
-    while (p != nullptr) {
-      Log("level=%d,data=%d,", p->level, p->data);
-      for (int l = 0; l < p->level; ++l) {
-        Log("spans[%d]=%d,", l, p->spans[l]);
-      }
-      Log("\t", 1);
-
-      p = p->nexts[0];
-    }
-    Log("\n", 1);
-  }
 
  private:
   bool InternalErase(Iterator& erase_it);
@@ -205,13 +189,11 @@ SkipList<T, Comparator>::FindFirstGreaterOrEquals(const T& data, Node** prevs,
     if (nullptr != next && Greater(data, next->data)) {
       // Move forward
       int span = p->spans[level];
-      // Log("span=%d\n", span);
       p = next;
       level = p->level;
       // Update prev nodes' spans
       for (int l = level; l < kMaxLevel; ++l) {
         prev_spans[l] += span;
-        // Log("prev_spans[%d]=%d\n", l, prev_spans[l]);
       }
       memset(&prev_spans[0], 0, sizeof(prev_spans[0]) * level);
     } else {

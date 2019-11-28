@@ -1,68 +1,85 @@
 #include "skiplist.h"
 
+#include <cassert>
 #include <chrono>
 #include <cstdio>
 #include <iostream>
-#define Logf(fmt, ...) fprintf(stderr, fmt "\n", __VA_ARGS__)
 
-class Test {
- public:
-  Test() {
-    std::cout << "0000000000"
-              << "\n";
+#define Log(fmt, ...) fprintf(stderr, fmt, __VA_ARGS__)
+
+// return random = [min, max]
+int random_range(int min, int max) { return random() % (max - min + 1) + min; }
+
+void Test(const int max_size) {
+  int* nums = new int[max_size];
+  for (int i = 0; i < max_size; ++i) {
+    nums[i] = i;
   }
-  ~Test() {
-    std::cout << "111111111111"
-              << "\n";
+
+  for (int i = 0; i < max_size - 1; ++i) {
+    int random_index = random_range(i + 1, max_size - 1);
+    int temp = nums[random_index];
+    nums[random_index] = nums[i];
+    nums[i] = temp;
   }
-  Test(const Test& other) {
-    std::cout << "222222222222"
-              << "\n";
-  };
-  Test(Test&& other) {
-    std::cout << "333333333"
-              << "\n";
-  };
-  bool operator<(const Test& other) const { return true; }
-};
+
+  SkipList<int> sl;
+
+  auto t1 = std::chrono::steady_clock::now();
+  // random insert
+  for (int i = 0; i < max_size; ++i) {
+    sl.Insert(nums[i]);
+  }
+
+  auto t2 = std::chrono::steady_clock::now();
+  // random query by index
+  for (int i = 0; i < max_size; ++i) {
+    int x = sl[random() % max_size];
+    (void)x;
+  }
+
+  auto t3 = std::chrono::steady_clock::now();
+  // random query by data
+  for (int i = 0; i < max_size; ++i) {
+    SkipList<int>::Iterator it = sl.Find(nums[i]);
+  }
+
+  auto t4 = std::chrono::steady_clock::now();
+  // random query index of data
+  for (int i = 0; i < max_size; ++i) {
+    int index = sl.IndexOf(nums[i]);
+  }
+
+  auto t5 = std::chrono::steady_clock::now();
+  // random delete
+  for (int i = 0; i < max_size; ++i) {
+    sl.Erase(sl.Find(nums[i]));
+  }
+  auto t6 = std::chrono::steady_clock::now();
+
+  assert(sl.Size() == 0);
+
+  Log("%d elements random insert,timespan=%ld\n", max_size,
+      std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count());
+  Log("%d elements random query by index,timespan=%ld\n", max_size,
+      std::chrono::duration_cast<std::chrono::milliseconds>(t3 - t2).count());
+  Log("%d elements random query by data,timespan=%ld\n", max_size,
+      std::chrono::duration_cast<std::chrono::milliseconds>(t4 - t3).count());
+  Log("%d elements random query index of data,timespan=%ld\n", max_size,
+      std::chrono::duration_cast<std::chrono::milliseconds>(t5 - t4).count());
+  Log("%d elements random delete,timespan=%ld\n", max_size,
+      std::chrono::duration_cast<std::chrono::milliseconds>(t6 - t5).count());
+  Log("%s\n", "------------------------------------------------------------------");
+  delete[] nums;
+}
 
 int main(int argc, char const* argv[]) {
   (void)argc;
   (void)argv;
 
-  // SkipList<int> sl;
-  // auto t1_ = std::chrono::steady_clock::now();
-  // for (int i = 0; i < 1000000; ++i) {
-  //   sl.Insert(random() % 1000000);
-  // }
-  // auto t2_ = std::chrono::steady_clock::now();
-  // int ms =
-  //     std::chrono::duration_cast<std::chrono::milliseconds>(t2_ -
-  //     t1_).count();
-  // std::cout << " timespan=" << ms << "ms"
-  //           << "\n";
-
-  // for (int i = 0; i < 100; ++i) {
-  //   sl.Erase(sl.Find(sl[random() % 100]));
-  // }
-
-  // auto t3_ = std::chrono::steady_clock::now();
-  // for (int i = 0; i < 1000000 - 100; ++i) {
-  //   sl[i];
-  // }
-  // auto t4_ = std::chrono::steady_clock::now();
-  // ms = std::chrono::duration_cast<std::chrono::milliseconds>(t4_ -
-  // t3_).count(); std::cout << " timespan=" << ms << "ms"
-  //           << "\n";
-
-  // auto t5_ = std::chrono::steady_clock::now();
-  // for (auto it = sl.Begin(); it != sl.End(); ++it) {
-  //   *it;
-  // }
-  // auto t6_ = std::chrono::steady_clock::now();
-  // ms = std::chrono::duration_cast<std::chrono::milliseconds>(t6_ -
-  // t5_).count(); std::cout << " timespan=" << ms << "ms"
-  //           << "\n";
+  Test(10000);
+  Test(100000);
+  Test(1000000);
 
   // LeetCode:
   // 1206. Design Skiplist
@@ -74,29 +91,11 @@ int main(int argc, char const* argv[]) {
 
     void add(int num) { sl_.Insert(num); }
 
-    bool erase(int num) {
-      return sl_.Erase(sl_.Find(num));
-    }
+    bool erase(int num) { return sl_.Erase(sl_.Find(num)); }
 
    private:
     SkipList<int> sl_;
   };
-
-  Skiplist slleetcode;
-  slleetcode.add(1);
-  // slleetcode.dump();
-  slleetcode.add(2);
-  slleetcode.add(3);
-
-  // Log("search1 %d,", slleetcode.search(1));
-
-  Log("search0 %d,", slleetcode.search(0));
-  slleetcode.add(4);
-  Log("search1 %d,", slleetcode.search(1));
-
-  Log("erase0 %d,", slleetcode.erase(0));
-  Log("erase1 %d,", slleetcode.erase(1));
-  Log("search1 %d,", slleetcode.search(1));
 
   return 0;
 }
