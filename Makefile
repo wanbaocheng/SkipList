@@ -1,7 +1,7 @@
 CXX = g++
-CXXFLAGS = -Wall -Wextra -pedantic -std=c++11 -g -O0 -fsanitize=address -fsanitize=leak 
-#-O0 -fsanitize=address -fsanitize=leak 
+CXXFLAGS = -Wall -Wextra -pedantic -std=c++11 -g -O2
 TARGET = test
+
 #-fsanitize=thread
 #-fsanitize=address -fsanitize=leak 
 all: $(TARGET)

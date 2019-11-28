@@ -10,7 +10,7 @@
 
 // It's almost guaranteed to be logn if the maximum number of nodes range in 0
 // to 2^20
-const int kMaxLevel = 3;
+const int kMaxLevel = 16;
 
 template <typename T, typename Comparator = std::less<T>>
 class SkipList {
@@ -92,7 +92,7 @@ class SkipList {
   // else return false(the node held by erase_it not exist).
   bool Erase(Iterator& erase_it) { return InternalErase(erase_it); }
 
-  Iterator begin() const { return Iterator(head_->nexts[0]); }
+  Iterator Begin() const { return Iterator(head_->nexts[0]); }
   Iterator End() const { return Iterator(nullptr); }
 
   void Dump() {
@@ -258,14 +258,16 @@ int SkipList<T, Comparator>::IndexOf(const T& data) const {
       // Move forward
       span += p->spans[level];
       p = next;
-      if (Equals(data, p->data)) {
-        return span - 1;
-      }
       level = p->level;
     }
     --level;
   }
-  return -1;
+
+  Node* next = p->nexts[0];
+  if (nullptr == next || !Equals(data, next->data)) {
+    return -1;
+  }
+  return span;
 }
 
 template <typename T, typename Comparator>
