@@ -195,7 +195,7 @@ int main(int argc, char const* argv[]) {
     Skiplist() {}
     bool search(int target) { return sl_.Find(target) != sl_.End(); }
     void add(int num) { sl_.Insert(num); }
-    bool erase(int num) { return sl_.Erase(sl_.Find(num)); }
+    bool erase(int num) { return sl_.Erase(num); }
 
    private:
     SkipList<int> sl_;
