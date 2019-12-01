@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cassert>
 #include <cstring>
+#include <functional>
 #include <random>
 
 // It's almost guaranteed to be logn if the maximum number of nodes range in 0
@@ -64,8 +65,22 @@ class SkipList {
   // Find the first node whose data is equals to the given data.
   // If success return the iterator, else return the end iterator.
   Iterator Find(const T& data) const {
-    Node* find_node = FindFirstGreaterOrEquals(data);
-    return InterlFind(data, find_node);
+    Node* find_node = FindNodeFirstGreaterOrEquals(data);
+    return InternalFind(data, find_node);
+  }
+
+  // Find the first node whose data is greater than the given data.
+  // If success return the iterator, else return the end iterator.
+  Iterator FindFirstGreater(const T& data) const {
+    Node* find_node = FindNodeFirstGreater(data);
+    return Iterator(find_node);
+  }
+
+  // Find the last node whose data is less than the given data.
+  // If success return the iterator, else return the end iterator.
+  Iterator FindLastLess(const T& data) const {
+    Node* find_node = FindNodeLastLess(data);
+    return Iterator(find_node);
   }
 
   // Find data whose position is at index.
@@ -113,7 +128,7 @@ class SkipList {
     Node* prevs[kMaxLevel];
     int prev_spans[kMaxLevel];
     memset(&prev_spans[0], 0, sizeof(prev_spans[0]) * kMaxLevel);
-    FindFirstGreaterOrEquals(new_node->data, prevs, prev_spans);
+    FindNodeFirstGreaterOrEquals(new_node->data, prevs, prev_spans);
 
     int new_level = new_node->level;
     for (int l = 0; l < new_level; ++l) {
@@ -133,11 +148,11 @@ class SkipList {
   }
 
   Iterator Find(const T& data, Node** prevs, int* spans) const {
-    Node* find_node = FindFirstGreaterOrEquals(data, prevs, spans);
-    return InterlFind(data, find_node);
+    Node* find_node = FindNodeFirstGreaterOrEquals(data, prevs, spans);
+    return InternalFind(data, find_node);
   }
 
-  Iterator InterlFind(const T& data, Node* find_node) const {
+  Iterator InternalFind(const T& data, Node* find_node) const {
     if (nullptr != find_node && Equals(data, find_node->data)) {
       return Iterator(find_node);
     } else {
@@ -147,23 +162,47 @@ class SkipList {
 
   // Find the first node whose data is greater than or equal to the given data,
   // and save the prev nodes in prevs, save spans from prevs[i] to find_node
-  Node* FindFirstGreaterOrEquals(const T& data, Node** prevs,
-                                 int* prev_spans) const;
+  Node* FindNodeFirstGreaterOrEquals(const T& data, Node** prevs,
+                                     int* prev_spans) const;
 
-  // Find the first node whose data is greater than or equals to the given data
-  Node* FindFirstGreaterOrEquals(const T& data) const {
+  typedef std::function<bool(const T& data, const T& other)> Predicate;
+  Node* Find(const T& data, Predicate&& pred) const {
     Node* p = head_;
     int level = head_->level - 1;
     while (level >= 0) {
       Node* next = p->nexts[level];
-      if (nullptr != next && Greater(data, next->data)) {
+      if (nullptr != next && pred(data, next->data)) {
         // Move forward
         p = next;
         level = p->level;
       }
       --level;
     }
+    return p;
+  }
+
+  // Find the first node whose data is greater than or equals to the given data
+  Node* FindNodeFirstGreaterOrEquals(const T& data) const {
+    Node* p = Find(data, [this](const T& data, const T& other) -> bool {
+      return Greater(data, other);
+    });
     return p->nexts[0];
+  }
+
+  // Find the first node whose data is greater than the given data
+  Node* FindNodeFirstGreater(const T& data) const {
+    Node* p = Find(data, [this](const T& data, const T& other) -> bool {
+      return GreaterOrEquals(data, other);
+    });
+    return p->nexts[0];
+  }
+
+  // Find the last node whose data is less than the given data
+  Node* FindNodeLastLess(const T& data) const {
+    Node* p = Find(data, [this](const T& data, const T& other) -> bool {
+      return Greater(data, other);
+    });
+    return p;
   }
 
   bool Equals(const T& data, const T& other) const {
@@ -178,6 +217,10 @@ class SkipList {
     return !Less(data, other) && !Equals(data, other);
   }
 
+  bool GreaterOrEquals(const T& data, const T& other) const {
+    return Greater(data, other) || Equals(data, other);
+  }
+
   Node* const head_;
   Comparator const compare_;
   int size_;
@@ -185,8 +228,9 @@ class SkipList {
 
 template <typename T, typename Comparator>
 typename SkipList<T, Comparator>::Node*
-SkipList<T, Comparator>::FindFirstGreaterOrEquals(const T& data, Node** prevs,
-                                                  int* prev_spans) const {
+SkipList<T, Comparator>::FindNodeFirstGreaterOrEquals(const T& data,
+                                                      Node** prevs,
+                                                      int* prev_spans) const {
   Node* p = head_;
   int level = head_->level - 1;
   while (level >= 0) {

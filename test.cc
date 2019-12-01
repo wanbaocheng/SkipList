@@ -60,15 +60,15 @@ void Test(const int max_size) {
 
   assert(sl.Size() == 0);
 
-  Log("%d elements random insert,timespan=%ld\n", max_size,
+  Log("%d elements random insert,timespan=%ldms\n", max_size,
       std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count());
-  Log("%d elements random query by index,timespan=%ld\n", max_size,
+  Log("%d elements random query by index,timespan=%ldms\n", max_size,
       std::chrono::duration_cast<std::chrono::milliseconds>(t3 - t2).count());
-  Log("%d elements random query by data,timespan=%ld\n", max_size,
+  Log("%d elements random query by data,timespan=%ldms\n", max_size,
       std::chrono::duration_cast<std::chrono::milliseconds>(t4 - t3).count());
-  Log("%d elements random query index of data,timespan=%ld\n", max_size,
+  Log("%d elements random query index of data,timespan=%ldms\n", max_size,
       std::chrono::duration_cast<std::chrono::milliseconds>(t5 - t4).count());
-  Log("%d elements random delete,timespan=%ld\n", max_size,
+  Log("%d elements random delete,timespan=%ldms\n", max_size,
       std::chrono::duration_cast<std::chrono::milliseconds>(t6 - t5).count());
   Log("%s\n",
       "------------------------------------------------------------------");
@@ -123,6 +123,10 @@ void Usage() {
   assert(++it == sl.Find(Foo(4)));
   it = sl.Find(Foo(10));
   assert(it == sl.End());
+  it = sl.FindFirstGreater(Foo(4));
+  assert(it->get_num() == 6);
+  it = sl.FindLastLess(Foo(4));
+  assert(it->get_num() == 2);
 
   // Query by data, return index
   assert(sl.IndexOf(foo) == 0);
