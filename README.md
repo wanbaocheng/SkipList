@@ -78,6 +78,10 @@ const T* operator->();
   assert(++it == sl.Find(Foo(4)));
   it = sl.Find(Foo(10));
   assert(it == sl.End());
+  it = sl.FindFirstGreater(Foo(4));
+  assert(it->get_num() == 6);
+  it = sl.FindLastLess(Foo(4));
+  assert(it->get_num() == 2);
 
   // Query by data, return index
   assert(sl.IndexOf(foo) == 0);
@@ -134,22 +138,22 @@ const T* operator->();
 Tested on my i5-7500 3.40GHz, see [test](test.cc).
 
 ```
-10000 elements random insert,timespan=6
-10000 elements random query by index,timespan=2
-10000 elements random query by data,timespan=2
-10000 elements random query index of data,timespan=2
-10000 elements random delete,timespan=9
+10000 elements random insert,timespan=6ms
+10000 elements random query by index,timespan=2ms
+10000 elements random query by data,timespan=2ms
+10000 elements random query index of data,timespan=2ms
+10000 elements random delete,timespan=9ms
 ------------------------------------------------------------------
-100000 elements random insert,timespan=102
-100000 elements random query by index,timespan=60
-100000 elements random query by data,timespan=70
-100000 elements random query index of data,timespan=70
-100000 elements random delete,timespan=100
+100000 elements random insert,timespan=102ms
+100000 elements random query by index,timespan=60ms
+100000 elements random query by data,timespan=70ms
+100000 elements random query index of data,timespan=70ms
+100000 elements random delete,timespan=100ms
 ------------------------------------------------------------------
-1000000 elements random insert,timespan=1847
-1000000 elements random query by index,timespan=1354
-1000000 elements random query by data,timespan=1622
-1000000 elements random query index of data,timespan=1652
-1000000 elements random delete,timespan=1880
+1000000 elements random insert,timespan=1847ms
+1000000 elements random query by index,timespan=1354ms
+1000000 elements random query by data,timespan=1622ms
+1000000 elements random query index of data,timespan=1652ms
+1000000 elements random delete,timespan=1880ms
 ------------------------------------------------------------------
 ```
