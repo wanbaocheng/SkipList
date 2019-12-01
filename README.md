@@ -7,7 +7,7 @@ SkipList implemented in c++11
 * You can use it for ranking, the time complexity of both query elements by rank and query rank by elements is also O(logn).
 
 # API
-```
+```C++
 SkipList:
 void Insert(const T& data);
 void Insert(T&& data);
@@ -30,7 +30,7 @@ const T* operator->();
 ```
 
 # Usage
-```
+```C++
   class Foo {
    public:
     Foo() {}  // requires default constructor
