@@ -161,9 +161,8 @@ void Usage() {
   it = sl.Find(foo);
   sl.Erase(it);
   assert(it->get_num() == 2);
-  it = sl.Find(Foo(6));
-  sl.Erase(it);
-  assert(it == sl.End());
+  assert(sl.Erase(Foo(6)));
+  assert(sl.Find(Foo(6)) == sl.End());
 
   assert(sl.Size() == 2);
   int deleted = 0;

@@ -110,6 +110,10 @@ class SkipList {
   // else return false(the node held by erase_it not exist).
   bool Erase(Iterator& erase_it) { return InternalErase(erase_it); }
 
+  // Delete the first node whose data is equals to give data
+  // If success return true else return false
+  bool Erase(const T& data);
+
   Iterator Begin() const { return Iterator(head_->nexts[0]); }
   Iterator End() const { return Iterator(nullptr); }
 
@@ -321,6 +325,7 @@ bool SkipList<T, Comparator>::InternalErase(Iterator& erase_it) {
 
   Node* p = begin.get_node();
   int level = p->level;
+  // Make sure the address of p equals to erase_node
   while (nullptr != p && p != erase_node) {
     prevs[level] = p;
     --level;
@@ -356,6 +361,36 @@ bool SkipList<T, Comparator>::InternalErase(Iterator& erase_it) {
 
   // move the iterator to next
   ++erase_it;
+
+  delete erase_node;
+  --size_;
+  return true;
+}
+
+template <typename T, typename Comparator>
+bool SkipList<T, Comparator>::Erase(const T& data) {
+  Node* prevs[kMaxLevel];
+  int prev_spans[kMaxLevel];
+  memset(&prev_spans[0], 0, sizeof(prev_spans[0]) * kMaxLevel);
+
+  Iterator it = Find(data, prevs, prev_spans);
+  if (it == End()) {
+    return false;
+  }
+
+  Node* erase_node = it.get_node();
+  int erase_level = erase_node->level;
+  for (int l = 0; l < erase_level; ++l) {
+    // Update prevs' nexts
+    prevs[l]->nexts[l] = erase_node->nexts[l];
+    // Update prevs' spans and nexts' spans
+    prevs[l]->spans[l] += erase_node->spans[l] - 1;
+  }
+
+  for (int l = erase_level; l < kMaxLevel; ++l) {
+    // Update prevs' spans
+    --prevs[l]->spans[l];
+  }
 
   delete erase_node;
   --size_;
