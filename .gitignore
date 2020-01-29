@@ -1,3 +1,9 @@
 .vscode
 *.o
 test
+.idea
+/ref
+/urdfdom_build
+/cmake-build*
+/*build*
+/untrack
